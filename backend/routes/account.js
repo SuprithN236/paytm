@@ -23,9 +23,11 @@ router.get("/balance", authMiddleware, async (req, res) => {
 
 router.post("/transfer", authMiddleware, async (req, res) => {
   const body = req.body;
-  const Sender = req.username;
+  const sender = req.username;
 
   const session = await mongoose.startSession();
+
+  session.startTransaction();
 
   const user = await UserModel.findOne({ username: sender }).session(session);
   const userAccount = await AccountsModel.findOne({ userId: user._id }).session(
@@ -60,7 +62,7 @@ router.post("/transfer", authMiddleware, async (req, res) => {
     { $inc: { balance: -body.amount } }
   ).session(session);
 
-  session.commitTransaction();
+  await session.commitTransaction();
   session.endSession();
 
   res.status(200).json({

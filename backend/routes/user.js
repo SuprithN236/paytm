@@ -52,12 +52,13 @@ router.post("/signup", async (req, res) => {
 
   const account = await AccountsModel.create({
     userId: dbUser._id,
-    balance: 1 + Math.random() * 1000,
+    balance: 1 + Math.floor(Math.random() * 1000),
   });
 
   res.status(200).json({
     msg: "user created successfully",
     token: token,
+    id: dbUser._id,
   });
 });
 
@@ -65,6 +66,7 @@ router.post("/signin", async (req, res) => {
   const body = req.body;
 
   const userExists = await UserModel.findOne({ username: body.username });
+  console.log(userExists);
 
   if (!userExists) {
     res.status(404).json({
@@ -82,6 +84,7 @@ router.post("/signin", async (req, res) => {
 
   res.status(200).json({
     token: token,
+    id: userExists.id,
   });
 });
 
@@ -109,10 +112,31 @@ router.put("/", authMiddleware, async (req, res) => {
 });
 
 router.get("/bulk", async (req, res) => {
-  const chars = req.query.chars || "";
+  const chars = req.query.filter || "";
+  const regexPattern = new RegExp(chars, "i");
   const users = await UserModel.find({
-    $or: [{ firstname: { $regex: chars } }, { lastname: { $regex: chars } }],
+    $or: [
+      { firstname: { $regex: regexPattern } },
+      { lastname: { $regex: regexPattern } },
+    ],
   });
+
+  router.get("/:id", async (req, res) => {
+    const id = req.params.id;
+    const user = await UserModel.findOne({ _id: id });
+
+    if (!user) {
+      res.status(400).json({
+        msg: "no user found",
+      });
+    }
+
+    res.status(200).json({
+      msg: user,
+    });
+  });
+
+  console.log(users);
 
   res.status(200).json({
     data: users.map((user) => ({
